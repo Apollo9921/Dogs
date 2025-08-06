@@ -26,12 +26,12 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            buildConfigField("String", "BASE_URL", "\"https://api.thedogapi.com/v1\"")
+            buildConfigField("String", "BASE_URL", "\"https://api.thedogapi.com/v1/\"")
             buildConfigField("String", "API_KEY", "\"live_ICSb7w8TCLeMDNd8t5ggItquBvUmM7yoxs8XRHQnAJQcrsNLLncum6YeDUTVLhTu\"")
 
         }
         debug {
-            buildConfigField("String", "BASE_URL", "\"https://api.thedogapi.com/v1\"")
+            buildConfigField("String", "BASE_URL", "\"https://api.thedogapi.com/v1/\"")
             buildConfigField("String", "API_KEY", "\"live_ICSb7w8TCLeMDNd8t5ggItquBvUmM7yoxs8XRHQnAJQcrsNLLncum6YeDUTVLhTu\"")
             applicationIdSuffix = ".debug"
         }
@@ -70,6 +70,7 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     // Coil
     implementation(libs.coil.compose)
+    implementation(libs.coil.network.okhttp)
     // Retrofit
     implementation(libs.retrofit.core)
     implementation(libs.retrofit.converter.moshi)
