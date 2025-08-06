@@ -23,6 +23,8 @@ import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.SnapshotStateList
+import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
@@ -39,6 +41,7 @@ import com.example.dogs.components.TopBar
 import com.example.dogs.core.Primary
 import com.example.dogs.core.White
 import com.example.dogs.networking.model.Dogs
+import com.example.dogs.networking.model.breeds.Breeds
 import com.example.dogs.networking.viewModel.HomeScreenViewModel
 import com.example.dogs.utils.network.ConnectivityObserver
 import com.example.dogs.utils.size.ScreenSizeUtils
@@ -46,6 +49,7 @@ import org.koin.androidx.compose.koinViewModel
 
 private var viewModel: HomeScreenViewModel? = null
 private var isConnected = mutableStateOf(false)
+private var breedsList: SnapshotStateList<Breeds> = SnapshotStateList()
 
 @Composable
 fun HomeScreen(navHostController: NavHostController) {
@@ -59,6 +63,15 @@ fun HomeScreen(navHostController: NavHostController) {
         viewModel?.isError?.value = true
     }
 
+    val isSuccess = viewModel?.isSuccess?.value
+    val isLoading = viewModel?.isLoading?.value
+    val isError = viewModel?.isError?.value
+    val errorMessage = viewModel?.errorMessage?.value
+
+    if (breedsList.isEmpty() && isSuccess == true) {
+        breedsList = viewModel?.breedsList?.toMutableStateList() ?: SnapshotStateList()
+    }
+
     Scaffold(
         modifier = Modifier
             .fillMaxSize()
@@ -68,6 +81,7 @@ fun HomeScreen(navHostController: NavHostController) {
                 title = stringResource(R.string.home_screen),
                 isBackEnabled = false,
                 isFilterEnabled = true,
+                filterContent = breedsList,
                 navHostController = navHostController
             )
         },
@@ -79,7 +93,7 @@ fun HomeScreen(navHostController: NavHostController) {
                     .padding(top = it.calculateTopPadding(), bottom = it.calculateBottomPadding())
             ) {
                 when {
-                    viewModel?.isLoading?.value == true || viewModel?.isSuccess?.value == true -> {
+                    isLoading == true || isSuccess == true -> {
                         val dogsList = viewModel?.dogsList ?: ArrayList()
                         if (dogsList.isNotEmpty()) {
                             DogsImageList(dogsList)
@@ -88,8 +102,8 @@ fun HomeScreen(navHostController: NavHostController) {
                         }
                     }
 
-                    viewModel?.isError?.value == true -> {
-                        ErrorBar(viewModel?.errorMessage?.value ?: "Unknown Error")
+                    isError == true -> {
+                        ErrorBar(errorMessage ?: "Unknown Error")
                     }
                 }
             }
@@ -148,7 +162,11 @@ private fun DogsImageList(dogsList: ArrayList<Dogs>) {
     )
     if (lazyGridState.isScrolledToTheEnd() && imageLoadingStates.size == dogsList.size) {
         if (viewModel?.isLoading?.value == false) {
-            viewModel?.fetchDogs()
+            if (viewModel?.networkStatus?.collectAsState()?.value == ConnectivityObserver.Status.Available) {
+                viewModel?.fetchDogs()
+            } else {
+                //TODO add snack bar
+            }
         }
     }
     CheckIfIsLoading(dogsList)
