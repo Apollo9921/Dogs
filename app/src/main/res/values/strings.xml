@@ -5,4 +5,10 @@
     <string name="no_internet_connection">No Internet Connection</string>
     <string name="filter_confirm">Confirm</string>
     <string name="filter_reset">Reset</string>
+    <string name="detail_breed_for_subtitle">Breed For:</string>
+    <string name="detail_breed_group_subtitle">Breed Group:</string>
+    <string name="detail_life_span_subtitle">Life Span:</string>
+    <string name="detail_temperament_subtitle">Temperament:</string>
+    <string name="detail_origin_subtitle">Origin:</string>
+    <string name="detail_unknown">Unknown</string>
 </resources>

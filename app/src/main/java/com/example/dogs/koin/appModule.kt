@@ -1,6 +1,7 @@
 package com.example.dogs.koin
 
 import com.example.dogs.networking.instance.Instance
+import com.example.dogs.networking.viewModel.DetailScreenViewModel
 import com.example.dogs.networking.viewModel.HomeScreenViewModel
 import com.example.dogs.utils.network.ConnectivityObserver
 import com.example.dogs.utils.network.NetworkConnectivityObserver
@@ -23,5 +24,9 @@ val appModule = module {
 
     viewModel {
         HomeScreenViewModel(get(), get())
+    }
+
+    viewModel {
+        DetailScreenViewModel(get(), get())
     }
 }
