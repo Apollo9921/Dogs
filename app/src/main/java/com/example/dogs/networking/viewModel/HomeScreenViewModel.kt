@@ -5,6 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.dogs.koin.DogsRepository
+import com.example.dogs.networking.interfaces.BreedSelected
 import com.example.dogs.networking.model.Dogs
 import com.example.dogs.networking.model.breeds.Breeds
 import com.example.dogs.utils.network.ConnectivityObserver
@@ -18,7 +19,7 @@ import kotlinx.coroutines.launch
 class HomeScreenViewModel(
     private val repository: DogsRepository,
     connectivityObserver: ConnectivityObserver
-) : ViewModel() {
+) : ViewModel(), BreedSelected {
 
     private val _dogsState = MutableStateFlow<DogsState>(DogsState.Error("Unknown Error"))
     private val dogsState: StateFlow<DogsState> = _dogsState.asStateFlow()
@@ -26,15 +27,26 @@ class HomeScreenViewModel(
     private val _breedState = MutableStateFlow<BreedsState>(BreedsState.Error("Unknown Error"))
     private val breedState: StateFlow<BreedsState> = _breedState.asStateFlow()
 
+    private val _filterState = MutableStateFlow<BreedsState>(BreedsState.Error("Unknown Error"))
+    private val filterState: StateFlow<BreedsState> = _filterState.asStateFlow()
+
+    private val _filterDogState =
+        MutableStateFlow<FilterDogsState>(FilterDogsState.Error("Unknown Error"))
+    private val filterDogState: StateFlow<FilterDogsState> = _filterDogState.asStateFlow()
+
     var dogsList = ArrayList<Dogs>()
     var breedsList = ArrayList<Breeds>()
+    var dogsFiltered = ArrayList<Dogs>()
 
     var isLoading = mutableStateOf(false)
     var isSuccess = mutableStateOf(false)
+    var isFilteredSuccess = mutableStateOf(false)
     var isError = mutableStateOf(false)
     var errorMessage = mutableStateOf("")
 
     private var currentPage = mutableIntStateOf(2)
+
+    private var maxFilterItemNumber = 19
 
     val networkStatus: StateFlow<ConnectivityObserver.Status> =
         connectivityObserver.observe()
@@ -49,9 +61,14 @@ class HomeScreenViewModel(
         data class Error(val message: String) : DogsState()
     }
 
+    sealed class FilterDogsState {
+        data class Success(val dog: Dogs) : FilterDogsState()
+        data class Error(val message: String) : FilterDogsState()
+    }
+
     sealed class BreedsState {
-        data class Success(val breeds: List<Breeds>): BreedsState()
-        data class Error(val message: String): BreedsState()
+        data class Success(val breeds: List<Breeds>) : BreedsState()
+        data class Error(val message: String) : BreedsState()
     }
 
     fun fetchDogs() {
@@ -73,12 +90,12 @@ class HomeScreenViewModel(
             } catch (e: Exception) {
                 _dogsState.value = DogsState.Error(e.message ?: "Unknown Error")
             } finally {
-                observeResponse()
+                observeDogsResponse()
             }
         }
     }
 
-    private fun observeResponse() {
+    private fun observeDogsResponse() {
         viewModelScope.launch {
             dogsState.collect { it ->
                 when (it) {
@@ -135,13 +152,14 @@ class HomeScreenViewModel(
     private fun observeBreedResponse() {
         viewModelScope.launch {
             breedState.collect { it ->
-                when(it) {
+                when (it) {
                     is BreedsState.Error -> {
                         isLoading.value = false
                         isSuccess.value = false
                         errorMessage.value = it.message
                         isError.value = true
                     }
+
                     is BreedsState.Success -> {
                         breedsList = it.breeds as ArrayList<Breeds>
                         isLoading.value = false
@@ -152,5 +170,106 @@ class HomeScreenViewModel(
                 }
             }
         }
+    }
+
+    private fun filterByBreedType(breedType: String) {
+        viewModelScope.launch {
+            try {
+                isLoading.value = false
+                if (networkStatus.value == ConnectivityObserver.Status.Unavailable) {
+                    _filterState.value = BreedsState.Error("No Internet Connection")
+                    isLoading.value = false
+                    return@launch
+                }
+                val response = repository.filterByBreed(breedType)
+                if (response.isSuccessful && response.body() != null) {
+                    _filterState.value = BreedsState.Success(response.body() ?: emptyList())
+                } else {
+                    _filterState.value = BreedsState.Error(response.message())
+                }
+            } catch (e: Exception) {
+                _filterState.value = BreedsState.Error(e.message ?: "Unknown Error")
+            } finally {
+                observeFilterResponse()
+            }
+        }
+    }
+
+    private fun observeFilterResponse() {
+        viewModelScope.launch {
+            filterState.collect { it ->
+                when (it) {
+                    is BreedsState.Error -> {
+                        isLoading.value = false
+                        isFilteredSuccess.value = false
+                        errorMessage.value = it.message
+                        isError.value = true
+                    }
+
+                    is BreedsState.Success -> {
+                        it.breeds.forEachIndexed { index, dog ->
+                            if (index <= maxFilterItemNumber) {
+                                getSpecificDog(dog.reference_image_id, index, it.breeds.size)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private fun getSpecificDog(id: String, index: Int, size: Int) {
+        viewModelScope.launch {
+            try {
+                isLoading.value = false
+                if (networkStatus.value == ConnectivityObserver.Status.Unavailable) {
+                    _filterDogState.value = FilterDogsState.Error("No Internet Connection")
+                    isLoading.value = false
+                    return@launch
+                }
+                val response = repository.getSpecificDog(id)
+                if (response.isSuccessful && response.body() != null) {
+                    _filterDogState.value = FilterDogsState.Success(response.body()!!)
+                } else {
+                    _filterDogState.value = FilterDogsState.Error(response.message())
+                }
+            } catch (e: Exception) {
+                _filterDogState.value = FilterDogsState.Error(e.message ?: "Unknown Error")
+            } finally {
+                observeFilterDogsResponse(index, size)
+            }
+        }
+    }
+
+    private fun observeFilterDogsResponse(index: Int, size: Int) {
+        viewModelScope.launch {
+            filterDogState.collect { it ->
+                when (it) {
+                    is FilterDogsState.Error -> {
+                        isLoading.value = false
+                        isFilteredSuccess.value = false
+                        errorMessage.value = it.message
+                        isError.value = true
+                    }
+
+                    is FilterDogsState.Success -> {
+                        dogsFiltered.add(it.dog)
+                        if (index == size - 1) {
+                            isLoading.value = false
+                            isError.value = false
+                            errorMessage.value = ""
+                            isFilteredSuccess.value = true
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    override suspend fun onBreedSelected(breedType: String) {
+        isFilteredSuccess.value = false
+        isSuccess.value = false
+        dogsFiltered = arrayListOf()
+        filterByBreedType(breedType)
     }
 }

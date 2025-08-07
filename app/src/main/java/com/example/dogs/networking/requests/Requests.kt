@@ -4,6 +4,7 @@ import com.example.dogs.networking.model.Dogs
 import com.example.dogs.networking.model.breeds.Breeds
 import retrofit2.Response
 import retrofit2.http.GET
+import retrofit2.http.Path
 import retrofit2.http.Query
 
 interface Requests {
@@ -11,7 +12,13 @@ interface Requests {
     @GET("images/search")
     suspend fun getDogsImages(@Query("limit") limit: Int): Response<List<Dogs>>
 
+    @GET("images/{id}")
+    suspend fun getSpecificDog(@Path("id") id: String): Response<Dogs>
+
     @GET("breeds")
     suspend fun getAllBreeds(): Response<List<Breeds>>
+
+    @GET("breeds/search")
+    suspend fun filterByBreed(@Query("q") q: String): Response<List<Breeds>>
 
 }

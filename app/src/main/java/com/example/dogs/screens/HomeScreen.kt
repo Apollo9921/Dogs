@@ -64,6 +64,7 @@ fun HomeScreen(navHostController: NavHostController) {
     }
 
     val isSuccess = viewModel?.isSuccess?.value
+    val isFilteredSuccess = viewModel?.isFilteredSuccess?.value
     val isLoading = viewModel?.isLoading?.value
     val isError = viewModel?.isError?.value
     val errorMessage = viewModel?.errorMessage?.value
@@ -82,7 +83,8 @@ fun HomeScreen(navHostController: NavHostController) {
                 isBackEnabled = false,
                 isFilterEnabled = true,
                 filterContent = breedsList,
-                navHostController = navHostController
+                navHostController = navHostController,
+                viewModel = viewModel
             )
         },
         content = {
@@ -93,13 +95,21 @@ fun HomeScreen(navHostController: NavHostController) {
                     .padding(top = it.calculateTopPadding(), bottom = it.calculateBottomPadding())
             ) {
                 when {
-                    isLoading == true || isSuccess == true -> {
-                        val dogsList = viewModel?.dogsList ?: ArrayList()
-                        if (dogsList.isNotEmpty()) {
-                            DogsImageList(dogsList)
-                        } else {
-                            LoadingBar()
+                    isFilteredSuccess == true -> {
+                        var filteredDogs = viewModel?.dogsFiltered ?: ArrayList()
+                        filteredDogs = filteredDogs.distinctBy { it.id } as ArrayList<Dogs>
+                        if (filteredDogs.isNotEmpty()) {
+                            DogsImageList(filteredDogs, isFilteredSuccess)
                         }
+                    }
+
+                    isSuccess == true -> {
+                        val dogsList = viewModel?.dogsList ?: ArrayList()
+                        DogsImageList(dogsList, isFilteredSuccess)
+                    }
+
+                    isLoading == true -> {
+                        LoadingBar()
                     }
 
                     isError == true -> {
@@ -112,20 +122,24 @@ fun HomeScreen(navHostController: NavHostController) {
 }
 
 @Composable
-private fun DogsImageList(dogsList: ArrayList<Dogs>) {
+private fun DogsImageList(dogsList: ArrayList<Dogs>, isFilteredSuccess: Boolean?) {
     val imageSize = ScreenSizeUtils.calculateCustomWidth(150).dp
     val lazyGridState = rememberLazyGridState()
     val imageLoadingStates = remember { mutableStateMapOf<String, AsyncImagePainter.State>() }
     var allImagesLoaded by remember { mutableStateOf(false) }
 
-    LaunchedEffect(imageLoadingStates.toMap(), dogsList) {
-        allImagesLoaded = if (dogsList.isNotEmpty()) {
-            dogsList.all { dog ->
-                val imageUrl = dog.url
-                imageLoadingStates[imageUrl] is AsyncImagePainter.State.Success || imageLoadingStates[imageUrl] is AsyncImagePainter.State.Error
+    isFilteredSuccess?.let {
+        if (!it == true) {
+            LaunchedEffect(imageLoadingStates.toMap(), dogsList) {
+                allImagesLoaded = if (dogsList.isNotEmpty()) {
+                    dogsList.all { dog ->
+                        val imageUrl = dog.url
+                        imageLoadingStates[imageUrl] is AsyncImagePainter.State.Success || imageLoadingStates[imageUrl] is AsyncImagePainter.State.Error
+                    }
+                } else {
+                    true
+                }
             }
-        } else {
-            true
         }
     }
 
@@ -148,10 +162,18 @@ private fun DogsImageList(dogsList: ArrayList<Dogs>) {
                         placeholder = painterResource(R.drawable.ic_launcher_background),
                         contentDescription = null,
                         onError = { state ->
-                            imageLoadingStates[dogsList[it].url] = state
+                            isFilteredSuccess?.let { it1 ->
+                                if (!it1) {
+                                    imageLoadingStates[dogsList[it].url] = state
+                                }
+                            }
                         },
                         onSuccess = { state ->
-                            imageLoadingStates[dogsList[it].url] = state
+                            isFilteredSuccess?.let { it1 ->
+                                if (!it1) {
+                                    imageLoadingStates[dogsList[it].url] = state
+                                }
+                            }
                         },
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.size(imageSize)
@@ -160,16 +182,20 @@ private fun DogsImageList(dogsList: ArrayList<Dogs>) {
             }
         }
     )
-    if (lazyGridState.isScrolledToTheEnd() && imageLoadingStates.size == dogsList.size) {
-        if (viewModel?.isLoading?.value == false) {
-            if (viewModel?.networkStatus?.collectAsState()?.value == ConnectivityObserver.Status.Available) {
-                viewModel?.fetchDogs()
-            } else {
-                //TODO add snack bar
+    isFilteredSuccess?.let {
+        if (!it) {
+            if (lazyGridState.isScrolledToTheEnd() && imageLoadingStates.size == dogsList.size) {
+                if (viewModel?.isLoading?.value == false) {
+                    if (viewModel?.networkStatus?.collectAsState()?.value == ConnectivityObserver.Status.Available) {
+                        viewModel?.fetchDogs()
+                    } else {
+                        //TODO add snack bar
+                    }
+                }
             }
+            CheckIfIsLoading(dogsList)
         }
     }
-    CheckIfIsLoading(dogsList)
 }
 
 @Composable
