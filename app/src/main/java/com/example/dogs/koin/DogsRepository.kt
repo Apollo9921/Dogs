@@ -1,7 +1,7 @@
 package com.example.dogs.koin
 
-import com.example.dogs.networking.model.Dogs
 import com.example.dogs.networking.model.breeds.Breeds
+import com.example.dogs.networking.model.dogs.Dogs
 import retrofit2.Response
 
 interface DogsRepository {

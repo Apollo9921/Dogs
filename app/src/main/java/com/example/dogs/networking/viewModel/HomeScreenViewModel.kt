@@ -6,8 +6,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.dogs.koin.DogsRepository
 import com.example.dogs.networking.interfaces.BreedSelected
-import com.example.dogs.networking.model.Dogs
 import com.example.dogs.networking.model.breeds.Breeds
+import com.example.dogs.networking.model.dogs.Dogs
 import com.example.dogs.utils.network.ConnectivityObserver
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted

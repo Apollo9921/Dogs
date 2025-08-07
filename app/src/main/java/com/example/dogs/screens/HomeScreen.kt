@@ -42,8 +42,8 @@ import com.example.dogs.components.LoadingBar
 import com.example.dogs.components.TopBar
 import com.example.dogs.core.Primary
 import com.example.dogs.core.White
-import com.example.dogs.networking.model.Dogs
 import com.example.dogs.networking.model.breeds.Breeds
+import com.example.dogs.networking.model.dogs.Dogs
 import com.example.dogs.networking.viewModel.HomeScreenViewModel
 import com.example.dogs.utils.network.ConnectivityObserver
 import com.example.dogs.utils.size.ScreenSizeUtils

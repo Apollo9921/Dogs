@@ -1,7 +1,7 @@
 package com.example.dogs.networking.requests
 
-import com.example.dogs.networking.model.Dogs
 import com.example.dogs.networking.model.breeds.Breeds
+import com.example.dogs.networking.model.dogs.Dogs
 import retrofit2.Response
 import retrofit2.http.GET
 import retrofit2.http.Path
