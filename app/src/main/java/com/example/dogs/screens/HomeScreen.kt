@@ -1,6 +1,8 @@
 package com.example.dogs.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -99,13 +101,13 @@ fun HomeScreen(navHostController: NavHostController) {
                         var filteredDogs = viewModel?.dogsFiltered ?: ArrayList()
                         filteredDogs = filteredDogs.distinctBy { it.id } as ArrayList<Dogs>
                         if (filteredDogs.isNotEmpty()) {
-                            DogsImageList(filteredDogs, isFilteredSuccess)
+                            DogsImageList(filteredDogs, isFilteredSuccess, navHostController)
                         }
                     }
 
                     isSuccess == true -> {
                         val dogsList = viewModel?.dogsList ?: ArrayList()
-                        DogsImageList(dogsList, isFilteredSuccess)
+                        DogsImageList(dogsList, isFilteredSuccess, navHostController)
                     }
 
                     isLoading == true -> {
@@ -122,11 +124,16 @@ fun HomeScreen(navHostController: NavHostController) {
 }
 
 @Composable
-private fun DogsImageList(dogsList: ArrayList<Dogs>, isFilteredSuccess: Boolean?) {
+private fun DogsImageList(
+    dogsList: ArrayList<Dogs>,
+    isFilteredSuccess: Boolean?,
+    navHostController: NavHostController
+) {
     val imageSize = ScreenSizeUtils.calculateCustomWidth(150).dp
     val lazyGridState = rememberLazyGridState()
     val imageLoadingStates = remember { mutableStateMapOf<String, AsyncImagePainter.State>() }
     var allImagesLoaded by remember { mutableStateOf(false) }
+    val interactionSource = remember { MutableInteractionSource() }
 
     isFilteredSuccess?.let {
         if (!it == true) {
@@ -154,7 +161,13 @@ private fun DogsImageList(dogsList: ArrayList<Dogs>, isFilteredSuccess: Boolean?
                 Box(
                     modifier = Modifier
                         .wrapContentSize()
-                        .padding(horizontal = 15.dp, vertical = 15.dp),
+                        .padding(horizontal = 15.dp, vertical = 15.dp)
+                        .clickable(
+                            interactionSource = interactionSource,
+                            indication = null
+                        ) {
+                            navHostController.navigate("details/${dogsList[it].id}")
+                        },
                     contentAlignment = Alignment.Center
                 ) {
                     AsyncImage(
@@ -188,8 +201,6 @@ private fun DogsImageList(dogsList: ArrayList<Dogs>, isFilteredSuccess: Boolean?
                 if (viewModel?.isLoading?.value == false) {
                     if (viewModel?.networkStatus?.collectAsState()?.value == ConnectivityObserver.Status.Available) {
                         viewModel?.fetchDogs()
-                    } else {
-                        //TODO add snack bar
                     }
                 }
             }

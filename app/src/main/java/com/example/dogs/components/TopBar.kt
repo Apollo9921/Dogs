@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -36,11 +37,13 @@ fun TopBar(
     title: String,
     isBackEnabled: Boolean,
     isFilterEnabled: Boolean,
-    filterContent: SnapshotStateList<Breeds>,
+    filterContent: SnapshotStateList<Breeds>?,
     navHostController: NavHostController,
     viewModel: HomeScreenViewModel?
 ) {
     val titleSize = ScreenSizeUtils.calculateCustomWidth(baseSize = 20).sp
+    val interactionSource = remember { MutableInteractionSource() }
+    val filterImageSize = ScreenSizeUtils.calculateCustomWidth(baseSize = 30).dp
     if (!isBackEnabled) {
         Row(
             modifier = Modifier
@@ -56,10 +59,8 @@ fun TopBar(
             )
             if (isFilterEnabled) {
                 if (openDialog.value) {
-                    ShowFilterOptions(filterContent, viewModel, openDialog)
+                    ShowFilterOptions(filterContent ?: SnapshotStateList(), viewModel, openDialog)
                 }
-                val interactionSource = remember { MutableInteractionSource() }
-                val filterImageSize = ScreenSizeUtils.calculateCustomWidth(baseSize = 30).dp
                 Image(
                     painter = painterResource(id = R.drawable.filter),
                     contentDescription = null,
@@ -74,6 +75,34 @@ fun TopBar(
                         }
                 )
             }
+        }
+    } else {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Secondary)
+                .padding(horizontal = 20.dp, vertical = 20.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Start
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.back),
+                contentDescription = null,
+                colorFilter = ColorFilter.tint(White),
+                modifier = Modifier
+                    .size(filterImageSize)
+                    .clickable(
+                        interactionSource = interactionSource,
+                        indication = null
+                    ) {
+                       navHostController.navigateUp()
+                    }
+            )
+            Spacer(Modifier.padding(15.dp))
+            Text(
+                style = Typography.titleLarge.copy(fontSize = titleSize),
+                text = title,
+            )
         }
     }
 }
